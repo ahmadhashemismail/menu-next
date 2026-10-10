@@ -1,10 +1,11 @@
+import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function PUT(
   request: Request,
-  ctx: RouteContext<"/api/food/[id]">
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await ctx.params;
+  const { id } = await params;
   try {
     const { name, price, category_id } = await request.json();
     const result = await pool.query(
@@ -12,37 +13,31 @@ export async function PUT(
       [name, price ?? null, category_id, id]
     );
     if (result.rows.length === 0) {
-      return Response.json({ error: "Item not found" }, { status: 404 });
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
-    return Response.json(result.rows[0]);
-  } catch (err) {
+    return NextResponse.json(result.rows[0]);
+  } catch (err: any) {
     console.error(err);
-    if ((err as { code?: string }).code === "23503") {
-      return Response.json(
-        { error: "Choose a valid food category" },
-        { status: 400 }
-      );
+    if (err.code === "23503") {
+      return NextResponse.json({ error: "Choose a valid food category" }, { status: 400 });
     }
-    return Response.json({ error: "Something went wrong" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  _request: Request,
-  ctx: RouteContext<"/api/food/[id]">
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await ctx.params;
+  const { id } = await params;
   try {
-    const result = await pool.query(
-      "DELETE FROM food WHERE id = $1 RETURNING *",
-      [id]
-    );
+    const result = await pool.query("DELETE FROM food WHERE id = $1 RETURNING *", [id]);
     if (result.rows.length === 0) {
-      return Response.json({ error: "Item not found" }, { status: 404 });
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
-    return Response.json({ message: "Deleted successfully" });
+    return NextResponse.json({ message: "Deleted successfully" });
   } catch (err) {
     console.error(err);
-    return Response.json({ error: "Something went wrong" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
